@@ -1,9 +1,21 @@
 import { StatusCodes } from 'http-status-codes'
+import { authenticator } from 'otplib'
 import { pickUser } from '~/utils/formatters'
+import QRCode from 'qrcode'
+import path from 'path'
 
-// LƯU Ý: Trong ví dụ về xác thực 2 lớp Two-Factor Authentication (2FA) này thì chúng ta sẽ sử dụng nedb-promises để lưu và truy cập dữ liệu từ một file JSON. Coi như file JSON này là Database của dự án.
+
 const Datastore = require('nedb-promises')
-const UserDB = Datastore.create('src/database/users.json')
+const UserDB = Datastore.create(({
+  filename: path.resolve(__dirname, '../database/users.json'),
+  autoload: true
+}))
+const TwoFactorSecretKeyDB = Datastore.create({
+  filename: path.resolve(__dirname, '../database/2fa_secret_keys.json'),
+  autoload: true
+})
+
+const SERVICE_NAME = '2FA - 2 Factor Authentication'
 
 const login = async (req, res) => {
   try {
@@ -13,9 +25,8 @@ const login = async (req, res) => {
       res.status(StatusCodes.NOT_FOUND).json({ message: 'User not found!' })
       return
     }
-    // Kiểm tra mật khẩu "đơn giản". LƯU Ý: Thực tế phải dùng bcryptjs để hash mật khẩu, đảm bảo mật khẩu được bảo mật. Ở đây chúng ta làm nhanh gọn theo kiểu so sánh string để tập trung vào nội dung chính là 2FA.
-    // Muốn học về bcryptjs cũng như toàn diện kiến thức đầy đủ về việc làm một trang web Nâng Cao thì các bạn có thể theo dõi khóa MERN Stack Advanced này. (Public lên phần hội viên của kênh vào tháng 12/2024)
-    // https://www.youtube.com/playlist?list=PLP6tw4Zpj-RJbPQfTZ0eCAXH_mHQiuf2G
+    // Kiểm tra mật khẩu "đơn giản". LƯU Ý: Thực tế phải dùng bcryptjs để hash mật khẩu,
+    // đảm bảo mật khẩu được bảo mật
     if (user.password !== req.body.password) {
       res.status(StatusCodes.NOT_ACCEPTABLE).json({ message: 'Wrong password!' })
       return
@@ -57,8 +68,47 @@ const logout = async (req, res) => {
   }
 }
 
+const get2FA_QRCode = async (req, res) => {
+  try {
+    const user = await UserDB.findOne({ _id: req.params.id })
+    if (!user) {
+      res.status(StatusCodes.NOT_FOUND).json({ message: 'User not found!' })
+      return
+    }
+
+    let twoFactorSecretKeyValue = null
+
+    const twoFactorSecret = await TwoFactorSecretKeyDB.findOne({ user_id: user._id })
+    if (!twoFactorSecret) {
+      const newTwoFactorSecret = await TwoFactorSecretKeyDB.insert({
+        user_id: user._id,
+        value: authenticator.generateSecret()
+      })
+
+      twoFactorSecretKeyValue = newTwoFactorSecret.value
+    } else {
+      twoFactorSecretKeyValue = twoFactorSecret.value
+    }
+
+    // Tạp OTP token
+    const OTP_AuthToken = authenticator.keyuri(
+      user.username,
+      SERVICE_NAME,
+      twoFactorSecretKeyValue
+    )
+
+    // Tạo ảnh QR Code
+    const QRCodeImageUrl = await QRCode.toDataURL(OTP_AuthToken)
+
+    return res.status(StatusCodes.OK).json({ qrcode: QRCodeImageUrl })
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error)
+  }
+}
+
 export const userController = {
   login,
   getUser,
-  logout
+  logout,
+  get2FA_QRCode
 }

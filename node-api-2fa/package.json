@@ -1,8 +1,8 @@
 {
-  "name": "api-base-2fa-two-factor-authentication-trungquandev",
+  "name": "api-base-2fa-two-factor-authentication-minatisleeping",
   "private": true,
   "version": "1.0.0",
-  "author": "TrungQuanDev | https://youtube.com/@trungquandev",
+  "author": "minatisleeping",
   "engines": {
     "node": "20.x"
   },
@@ -30,6 +30,7 @@
     "lodash": "^4.17.21",
     "nedb-promises": "^6.2.3",
     "otplib": "^12.0.1",
+    "path": "^0.12.7",
     "qrcode": "^1.5.4",
     "uuid": "^10.0.0"
   },
