@@ -29,7 +29,7 @@ const START_SERVER = () => {
 
   const LOCAL_DEV_APP_PORT = 8017
   const LOCAL_DEV_APP_HOST = 'localhost'
-  const AUTHOR = 'TrungQuanDev'
+  const AUTHOR = 'minatisleeping'
 
   // Môi trường Production
   if (process.env.BUILD_MODE === 'production') {
