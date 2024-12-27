@@ -7,7 +7,7 @@ import Zoom from '@mui/material/Zoom'
 import Alert from '@mui/material/Alert'
 import { useForm } from 'react-hook-form'
 import Typography from '@mui/material/Typography'
-import MinatIcon from '../assets/logo.png'
+import MinatIcon from '../assets/minat-logo.jpeg'
 import { useNavigate } from 'react-router-dom'
 import { loginAPI } from '~/apis'
 

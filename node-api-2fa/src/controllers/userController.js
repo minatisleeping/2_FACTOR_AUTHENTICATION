@@ -20,8 +20,8 @@ const SERVICE_NAME = '2FA - 2 Factor Authentication'
 const login = async (req, res) => {
   try {
     const user = await UserDB.findOne({ email: req.body.email })
-    // Không tồn tại user
     if (!user) {
+
       res.status(StatusCodes.NOT_FOUND).json({ message: 'User not found!' })
       return
     }
