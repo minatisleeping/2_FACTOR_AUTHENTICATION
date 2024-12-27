@@ -4,5 +4,5 @@ import { pick } from 'lodash'
 // Note: Có thể dùng omit để làm ngược lại so với pick nếu bạn muốn
 export const pickUser = (user) => {
   if (!user) return {}
-  return pick(user, ['_id', 'email', 'username', 'youtube', 'require_2fa', 'is_2fa_verified'])
+  return pick(user, ['_id', 'email', 'username', 'github', 'require_2fa', 'is_2fa_verified'])
 }
