@@ -6,9 +6,9 @@ import path from 'path'
 
 
 const Datastore = require('nedb-promises')
-const UserDB = Datastore.create({ filename: path.resolve(__dirname, '../database/users.json') })
-const TwoFactorSecretKeyDB = Datastore.create({ filename: path.resolve(__dirname, '../database/2fa_secret_keys.json') })
-const UserSessionDB = Datastore.create({ filename: path.resolve(__dirname, '../user_sessions/2fa_secret_keys.json') })
+const UserDB = Datastore.create({ filename: path.join(__dirname, '../database/users.json'), autoload: true })
+const TwoFactorSecretKeyDB = Datastore.create({ filename: path.join(__dirname, '../database/2fa_secret_keys.json'), autoload: true })
+const UserSessionDB = Datastore.create({ filename: path.join(__dirname, '../database/user_sessions.json'), autoload: true })
 
 const SERVICE_NAME = '2FA - 2 Factor Authentication'
 
@@ -73,12 +73,12 @@ const get2FA_QRCode = async (req, res) => {
 
     const twoFactorSecret = await TwoFactorSecretKeyDB.findOne({ user_id: user._id })
     if (!twoFactorSecret) {
-      const newTwoFactorSecret = await TwoFactorSecretKeyDB.insert({
+      const newTwoFactorSecretKey = await TwoFactorSecretKeyDB.insert({
         user_id: user._id,
         value: authenticator.generateSecret()
       })
 
-      twoFactorSecretKeyValue = newTwoFactorSecret.value
+      twoFactorSecretKeyValue = newTwoFactorSecretKey.value
     } else {
       twoFactorSecretKeyValue = twoFactorSecret.value
     }
@@ -114,11 +114,15 @@ const setup2FA = async (req, res) => {
     }
 
     const clientOTP = req.body.otp
+    if (!clientOTP) {
+      res.status(StatusCodes.NOT_ACCEPTABLE).json({ message: 'OTP is required!' })
+      return
+    }
+
     const isValid = authenticator.verify({
       token:clientOTP,
       secret: twoFactorSecret.value
     })
-
     if (!isValid) {
       res.status(StatusCodes.NOT_ACCEPTABLE).json({ message: 'Invalid 2FA Token!' })
       return
@@ -131,12 +135,11 @@ const setup2FA = async (req, res) => {
     )
 
     // Update lại thằng user trong db vì nebd update collection -> dở ác
-    UserDB.compactDatafileSync()
+    UserDB.compactDatafileAsync()
 
     const newUserSession = await UserSessionDB.insert({
       user_id: user._id,
-      // Lấy userAgent từ header để định danh browser mà user đang sử dụng (device_id)
-      device_id: req.header['user-agent'],
+      device_id: req.headers['user-agent'],
       is_2fa_verified: true,
       last_login: new Date().valueOf()
     })

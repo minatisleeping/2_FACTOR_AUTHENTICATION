@@ -17,21 +17,27 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Gọi API
       const user = await fetchUserAPI()
-      // Update lại thông tin user trong state component
+      console.log('🚀 ~ user:', user)
       setUser(user)
     }
+
     fetchData()
   }, [])
 
   const handleLogout = async () => {
-    // Gọi APi
     await logoutAPI(user._id)
-    // Xóa thông tin user trong LocalStorage phía Front-end
     localStorage.removeItem('userInfo')
-    // Điều hướng tới trang Login khi Logout thành công
+
     navigate('/login')
+  }
+
+  const handleSuccessSetup2FA = (updatedUser) => {
+    setUser(updatedUser)
+
+    localStorage.setItem('userInfo', JSON.stringify(updatedUser))
+
+    setOpenSetup2FA(false)
   }
 
   if (!user) {
@@ -64,13 +70,13 @@ function Dashboard() {
       <Setup2FA
         isOpen={openSetup2FA}
         toggleOpen={setOpenSetup2FA}
-        userId={user._id}
+        user={user}
+        handleSuccessSetup2FA={handleSuccessSetup2FA}
       />
 
       {/* Modal yêu cầu xác thực 2FA */}
       {/* Với điều kiện user đã bật tính năng 2FA, và user chưa xác thực 2FA ngay sau khi đăng nhập ở lần tiếp theo */}
-      {/* <Require2FA /> */}
-      {/* {user.require_2fa && !user.is_2fa_verified && <Require2FA />} */}
+      {user.require_2fa && !user.is_2fa_verified && <Require2FA />}
 
       <Box>
         <a style={{ color: 'inherit', textDecoration: 'none' }} href='https://github.com/minatisleeping' target='_blank' rel='noreferrer'>
@@ -87,7 +93,7 @@ function Dashboard() {
         <Typography variant="span" sx={{ fontWeight: 'bold', '&:hover': { color: '#e67e22', cursor: 'pointer' } }}>
           {user.email}
         </Typography>
-        &nbsp; đăng nhập thành công thì mới cho truy cập vào.
+        &nbsp;đăng nhập thành công thì mới cho truy cập vào.
       </Alert>
 
       <Alert severity={`${user.require_2fa ? 'success' : 'warning'}`} sx={{ '.MuiAlert-message': { overflow: 'hidden' } }}>

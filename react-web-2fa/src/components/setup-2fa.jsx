@@ -7,32 +7,46 @@ import SecurityIcon from '@mui/icons-material/Security'
 import CancelIcon from '@mui/icons-material/Cancel'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
-import { get2FA_QRCodeAPI } from '~/apis'
+import { get2FA_QRCodeAPI, setup2FA_API } from '~/apis'
 
-function Setup2FA({ isOpen, toggleOpen, userId }) {
+function Setup2FA({ isOpen, toggleOpen, user, handleSuccessSetup2FA }) {
   const [otpToken, setConfirmOtpToken] = useState('')
   const [error, setError] = useState(null)
-  const [qrCodeImageUrl, setQrCodeImageUrl] = useState('')
+  const [qrCodeImageUrl, setQrCodeImageUrl] = useState(null)
 
   useEffect(() => {
     if (isOpen) {
-      get2FA_QRCodeAPI(userId).then(res => {
+      const fetch2FA = async () => {
+        const res = await get2FA_QRCodeAPI(user._id)
         setQrCodeImageUrl(res.qrcode)
-      })
+      }
+
+      fetch2FA()
     }
-  }, [isOpen, userId])
+  }, [isOpen, user._id])
 
   const handleCloseModal = () => toggleOpen(!isOpen)
 
-  const handleConfirmSetup2FA = () => {
+  const handleConfirmSetup2FA = async () => {
     if (!otpToken) {
-      const errMsg = 'Please enter your otp token.'
+      const errMsg = 'Please enter your OTP token!'
       setError(errMsg)
       toast.error(errMsg)
       return
     }
-    console.log('handleConfirmSetup2FA > otpToken: ', otpToken)
-    // Call API here
+
+    console.log('🚀 ~ otpToken:', otpToken)
+
+    // const updatedUser = await setup2FA_API(user._id, otpToken)
+    // handleSuccessSetup2FA(updatedUser)
+    // toast.success('2FA has been setup successfully!')
+    // setError(null)
+
+    await setup2FA_API(user._id, otpToken).then(updatedUser => {
+      handleSuccessSetup2FA(updatedUser)
+      toast.success('2FA has been setup successfully!')
+      setError(null)
+    })
   }
 
   return (
@@ -40,55 +54,92 @@ function Setup2FA({ isOpen, toggleOpen, userId }) {
       disableScrollLock
       open={isOpen}
       // onClose={handleCloseModal} // Sử dụng onClose trong trường hợp muốn đóng Modal bằng nút ESC hoặc click ra ngoài Modal
-      sx={{ overflowY: 'auto' }}>
-      <Box sx={{
-        position: 'relative',
-        maxWidth: 700,
-        bgcolor: 'white',
-        boxShadow: 24,
-        borderRadius: '8px',
-        border: 'none',
-        outline: 0,
-        padding: '40px 20px 20px',
-        margin: '120px auto',
-        backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1A2027' : '#fff'
-      }}>
-        <Box sx={{
-          position: 'absolute',
-          top: '12px',
-          right: '10px',
-          cursor: 'pointer'
-        }}>
-          <CancelIcon color="error" sx={{ '&:hover': { color: 'error.light' } }} onClick={handleCloseModal} />
+      sx={{ overflowY: 'auto' }}
+    >
+      <Box
+        sx={{
+          position: 'relative',
+          maxWidth: 700,
+          bgcolor: 'white',
+          boxShadow: 24,
+          borderRadius: '8px',
+          border: 'none',
+          outline: 0,
+          padding: '40px 20px 20px',
+          margin: '120px auto',
+          backgroundColor: (theme) => (theme.palette.mode === 'dark' ? '#1A2027' : '#fff')
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '12px',
+            right: '10px',
+            cursor: 'pointer'
+          }}
+        >
+          <CancelIcon color='error' sx={{ '&:hover': { color: 'error.light' } }} onClick={handleCloseModal} />
         </Box>
 
-        <Box sx={{ mb: 1, mt: -3, pr: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+        <Box
+          sx={{
+            mb: 1,
+            mt: -3,
+            pr: 2.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1
+          }}
+        >
           <SecurityIcon sx={{ color: '#27ae60' }} />
-          <Typography variant='h6' sx={{ fontWeight: 'bold', color: '#27ae60' }}>Setup 2FA (Two-Factor Authentication)</Typography>
+          <Typography variant='h6' sx={{ fontWeight: 'bold', color: '#27ae60' }}>
+            Setup 2FA (Two-Factor Authentication)
+          </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            p: 1
+          }}
+        >
           {!qrCodeImageUrl ? (
             <span>Loading..</span>
           ) : (
             <img
               style={{ width: '100%', maxWidth: '250px', objectFit: 'contain' }}
               src={qrCodeImageUrl}
-              alt="minat-2fa-card-cover"
+              alt='minat-2fa-card-cover'
             />
           )}
 
           <Box sx={{ textAlign: 'center' }}>
-            Quét mã QR trên ứng dụng <strong>Google Authenticator</strong> hoặc <strong>Authy</strong> của bạn.<br />Sau đó nhập mã gồm 6 chữ số và click vào <strong>Confirm</strong> để xác nhận.
+            Quét mã QR trên ứng dụng <strong>Google Authenticator</strong> hoặc <strong>Authy</strong> của bạn.
+            <br />
+            Sau đó nhập mã gồm 6 chữ số và click vào <strong>Confirm</strong> để xác nhận.
           </Box>
 
-          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, my: 1 }}>
+          <Box
+            sx={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              my: 1
+            }}
+          >
             <TextField
               autoFocus
               autoComplete='nope'
-              label="Enter your code..."
-              type="text"
-              variant="outlined"
+              label='Enter your code...'
+              type='text'
+              variant='outlined'
               sx={{ minWidth: '280px' }}
               value={otpToken}
               onChange={(e) => setConfirmOtpToken(e.target.value)}
@@ -96,11 +147,16 @@ function Setup2FA({ isOpen, toggleOpen, userId }) {
             />
 
             <Button
-              type="button"
-              variant="contained"
-              color="primary"
+              type='button'
+              variant='contained'
+              color='primary'
               size='large'
-              sx={{ textTransform: 'none', minWidth: '120px', height: '55px', fontSize: '1em' }}
+              sx={{
+                textTransform: 'none',
+                minWidth: '120px',
+                height: '55px',
+                fontSize: '1em'
+              }}
               onClick={handleConfirmSetup2FA}
             >
               Confirm
@@ -108,8 +164,21 @@ function Setup2FA({ isOpen, toggleOpen, userId }) {
           </Box>
 
           <Box>
-            <Typography variant="span" sx={{ fontWeight: 'bold', fontSize: '0.9em', color: '#8395a7', '&:hover': { color: '#fdba26' } }}>
-              <a style={{ color: 'inherit', textDecoration: 'none' }} href='https://github.com/minatisleeping' target='_blank' rel='noreferrer'>
+            <Typography
+              variant='span'
+              sx={{
+                fontWeight: 'bold',
+                fontSize: '0.9em',
+                color: '#8395a7',
+                '&:hover': { color: '#fdba26' }
+              }}
+            >
+              <a
+                style={{ color: 'inherit', textDecoration: 'none' }}
+                href='https://github.com/minatisleeping'
+                target='_blank'
+                rel='noreferrer'
+              >
                 Minatisleeping
               </a>
             </Typography>
