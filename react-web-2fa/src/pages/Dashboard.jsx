@@ -18,7 +18,6 @@ function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       const user = await fetchUserAPI()
-      console.log('🚀 ~ user:', user)
       setUser(user)
     }
 
@@ -81,8 +80,8 @@ function Dashboard() {
       <Box>
         <a style={{ color: 'inherit', textDecoration: 'none' }} href='https://github.com/minatisleeping' target='_blank' rel='noreferrer'>
           <img
-            style={{ width: '100%', height: '180px', borderRadius: '6px', objectFit: 'cover' }}
-            src="src/assets/Cover-3556x2000.png"
+            style={{ width: '100%', height: '400px', borderRadius: '6px', objectFit: 'cover' }}
+            src="src/assets/cover.png"
             alt="cover"
           />
         </a>

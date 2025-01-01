@@ -35,18 +35,10 @@ function Setup2FA({ isOpen, toggleOpen, user, handleSuccessSetup2FA }) {
       return
     }
 
-    console.log('🚀 ~ otpToken:', otpToken)
-
-    // const updatedUser = await setup2FA_API(user._id, otpToken)
-    // handleSuccessSetup2FA(updatedUser)
-    // toast.success('2FA has been setup successfully!')
-    // setError(null)
-
-    await setup2FA_API(user._id, otpToken).then(updatedUser => {
-      handleSuccessSetup2FA(updatedUser)
-      toast.success('2FA has been setup successfully!')
-      setError(null)
-    })
+    const updatedUser = await setup2FA_API(user._id, otpToken)
+    handleSuccessSetup2FA(updatedUser)
+    toast.success('2FA has been setup successfully!')
+    setError(null)
   }
 
   return (
