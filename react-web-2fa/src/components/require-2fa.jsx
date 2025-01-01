@@ -6,20 +6,25 @@ import Typography from '@mui/material/Typography'
 import SecurityIcon from '@mui/icons-material/Security'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
+import { verify2FA_API } from '~/apis'
 
-function Require2FA() {
+function Require2FA({ user, handleSuccessVerify2FA }) {
   const [otpToken, setConfirmOtpToken] = useState('')
   const [error, setError] = useState(null)
 
-  const handleRequire2FA = () => {
+  const handleRequire2FA = async () => {
     if (!otpToken) {
       const errMsg = 'Please enter your code.'
       setError(errMsg)
       toast.error(errMsg)
       return
     }
-    console.log('handleRequire2FA > otpToken: ', otpToken)
-    // Call API here
+    // console.log('handleRequire2FA > otpToken: ', otpToken)
+
+    const updatedUser = await verify2FA_API(user._id, otpToken)
+    handleSuccessVerify2FA(updatedUser)
+    toast.success('Verify 2FA successfully!')
+    setError(null)
   }
 
   return (
