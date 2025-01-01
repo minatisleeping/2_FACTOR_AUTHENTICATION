@@ -1,8 +1,8 @@
 import { StatusCodes } from 'http-status-codes'
 import { authenticator } from 'otplib'
-import { pickUser } from '~/utils/formatters'
-import QRCode from 'qrcode'
 import path from 'path'
+import QRCode from 'qrcode'
+import { pickUser } from '~/utils/formatters'
 
 
 const Datastore = require('nedb-promises')
@@ -25,7 +25,29 @@ const login = async (req, res) => {
       return
     }
 
-    res.status(StatusCodes.OK).json(pickUser(user))
+    let resUser = pickUser(user)
+
+    // Tìm phiên login hiện tại của user với device_id
+    let currentUserSession = await UserSessionDB.findOne({
+      user_id: user._id,
+      device_id: req.headers['user-agent']
+    })
+
+    // Nếu chưa có phiên login nào thì tạo mới
+    if (!currentUserSession) {
+      currentUserSession = await UserSessionDB.insert({
+        user_id: user._id,
+        device_id: req.headers['user-agent'],
+        is_2fa_verified: false,
+        last_login: new Date().valueOf()
+      })
+    }
+
+    resUser['is_2fa_verified'] = currentUserSession.is_2fa_verified
+    resUser['last_login'] = currentUserSession.last_login
+    console.log('🚀 ~ resUser:', resUser)
+
+    res.status(StatusCodes.OK).json(resUser)
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error)
   }
@@ -39,7 +61,15 @@ const getUser = async (req, res) => {
       return
     }
 
-    res.status(StatusCodes.OK).json(pickUser(user))
+    let resUser = pickUser(user)
+    const currentUserSession = await UserSessionDB.findOne({
+      user_id: user._id,
+      device_id: req.headers['user-agent']
+    })
+    resUser['is_2fa_verified'] = currentUserSession ? currentUserSession.is_2fa_verified : null
+    resUser['last_login'] = currentUserSession ? currentUserSession.last_login : null
+
+    res.status(StatusCodes.OK).json(resUser)
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error)
   }
@@ -53,7 +83,11 @@ const logout = async (req, res) => {
       return
     }
 
-    // Xóa phiên của user trong Database > user_sessions tại đây khi đăng xuất
+    await UserSessionDB.deleteOne({
+      user_id: user._id,
+      device_id: req.headers['user-agent']
+    })
+    UserSessionDB.compactDatafileAsync()
 
     res.status(StatusCodes.OK).json({ loggedOut: true })
   } catch (error) {
@@ -154,10 +188,58 @@ const setup2FA = async (req, res) => {
   }
 }
 
+const verify2FA = async (req, res) => {
+  try {
+    const user = await UserDB.findOne({ _id: req.params.id })
+    if (!user) {
+      res.status(StatusCodes.NOT_FOUND).json({ message: 'User not found!' })
+      return
+    }
+
+    const twoFactorSecret = await TwoFactorSecretKeyDB.findOne({ user_id: user._id })
+    if (!twoFactorSecret) {
+      res.status(StatusCodes.NOT_FOUND).json({ message: '2FA Secret not found!' })
+      return
+    }
+
+    const clientOTP = req.body.otp
+    if (!clientOTP) {
+      res.status(StatusCodes.NOT_ACCEPTABLE).json({ message: 'OTP is required!' })
+      return
+    }
+
+    const isValid = authenticator.verify({
+      token:clientOTP,
+      secret: twoFactorSecret.value
+    })
+    if (!isValid) {
+      res.status(StatusCodes.NOT_ACCEPTABLE).json({ message: 'Invalid 2FA Token!' })
+      return
+    }
+
+    const updatedUserSession = await UserSessionDB.update(
+      { user_id: user._id, device_id: req.headers['user-agent'] },
+      { $set: { is_2fa_verified: true, last_login: new Date().valueOf() } },
+      { returnUpdatedDocs: true }
+    )
+    UserDB.compactDatafileAsync()
+
+    res.status(StatusCodes.OK).json({
+      ...pickUser(user),
+      is_2fa_verified: updatedUserSession.is_2fa_verified,
+      last_login: updatedUserSession.last_login,
+      message: '2FA verified successfully!'
+    })
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error)
+  }
+}
+
 export const userController = {
   login,
   getUser,
   logout,
   get2FA_QRCode,
-  setup2FA
+  setup2FA,
+  verify2FA
 }
