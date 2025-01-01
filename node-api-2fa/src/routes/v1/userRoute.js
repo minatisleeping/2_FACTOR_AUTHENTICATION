@@ -19,7 +19,7 @@ Router.route('/:id/setup_2fa')
   .post(userController.setup2FA)
 
 Router.route('/:id/verify_2fa')
-  .post(userController.verify2FA)
+  .put(userController.verify2FA)
 
 
 export const userRoute = Router

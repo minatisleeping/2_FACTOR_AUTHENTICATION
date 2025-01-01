@@ -45,7 +45,6 @@ const login = async (req, res) => {
 
     resUser['is_2fa_verified'] = currentUserSession.is_2fa_verified
     resUser['last_login'] = currentUserSession.last_login
-    console.log('🚀 ~ resUser:', resUser)
 
     res.status(StatusCodes.OK).json(resUser)
   } catch (error) {
@@ -222,7 +221,7 @@ const verify2FA = async (req, res) => {
       { $set: { is_2fa_verified: true, last_login: new Date().valueOf() } },
       { returnUpdatedDocs: true }
     )
-    UserDB.compactDatafileAsync()
+    UserSessionDB.compactDatafileAsync()
 
     res.status(StatusCodes.OK).json({
       ...pickUser(user),
