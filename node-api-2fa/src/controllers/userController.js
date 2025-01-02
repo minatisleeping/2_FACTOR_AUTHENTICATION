@@ -166,20 +166,20 @@ const setup2FA = async (req, res) => {
       { $set: { require_2fa: true } },
       { returnUpdatedDocs: true }
     )
-
     // Update lại thằng user trong db vì nebd update collection -> dở ác
     UserDB.compactDatafileAsync()
 
-    const newUserSession = await UserSessionDB.insert({
-      user_id: user._id,
-      device_id: req.headers['user-agent'],
-      is_2fa_verified: true,
-      last_login: new Date().valueOf()
-    })
+    const updatedUserSession = await UserSessionDB.update(
+      { user_id: user._id, device_id: req.headers['user-agent'] },
+      { $set: { is_2fa_verified: true, last_login: new Date().valueOf() } },
+      { returnUpdatedDocs: true }
+    )
+    UserSessionDB.compactDatafileAsync()
+    UserSessionDB.compactDatafileAsync()
 
     res.status(StatusCodes.OK).json({
       ...pickUser(updatedUser),
-      is_2fa_verified: newUserSession.is_2fa_verified,
+      is_2fa_verified: updatedUserSession.is_2fa_verified,
       message: '2FA setup successfully!'
     })
   } catch (error) {
