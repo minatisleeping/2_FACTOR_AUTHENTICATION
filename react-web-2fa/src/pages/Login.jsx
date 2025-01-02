@@ -49,8 +49,8 @@ function Login() {
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'center', color: theme => theme.palette.grey[500] }}>
               <Box>
-                <Typography>Hint: minatisleeping.official@gmail.com</Typography>
-                <Typography>Pass: minatisleeping@123</Typography>
+                <Typography>Hint: minat1</Typography>
+                <Typography>Pass: minat1</Typography>
               </Box>
             </Box>
             <Box sx={{ padding: '0 1em 1em 1em' }}>
